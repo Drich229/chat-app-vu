@@ -1,54 +1,58 @@
 <template>
-    <div class="page-wrapper">
-        <div class="side-bar">
-                <div class="side-bar-container">
+  <div class="page-wrapper">
+      <div class="side-bar">
+              <div class="side-bar-container">
 
-                    <div class="menu-1">
-                        <div class="avatar-container">
-                            <img src="/img/images/avatar-svgrepo-com.svg" class="avatar-icon" alt="">
-                        </div>
-                        <div class="menu-1_link-container">
-                            <a href="#" class="menu-1_link"><img src="/img/images/two_men.svg" alt="two men icon"></a>
-                            <a href="#" class="menu-1_link"><img src="/img/images/message-icon.svg" alt="message icon"></a>
-                            <a href="#" class="menu-1_link selected-link"><img src="/img/images/one-man.svg" alt="one man icon"></a>
-                        </div>
-                    </div>
-                    <div class="menu-2">
-                        <a href="" class="menu-2_link"><img src="/img/images/bin-icon.svg" alt=""></a>
-                        <a href="" class="menu-2_link"><img src="/img/images/help-icon.svg" alt=""></a>
-                        <a href="" class="menu-2_link"><img src="/img/images/setting-icon.svg" alt=""></a>
-                    </div>
+                  <div class="menu-1">
+                      <div class="avatar-container">
+                          <img src="/img/images/avatar-svgrepo-com.svg" class="avatar-icon" alt="">
+                      </div>
+                      <div class="menu-1_link-container">
+                        <a href="#" @click="activeMenu1" class="menu-1_link" :class = "{ selectedLink: selectedLink1 }"><img src="/img/images/invitations-list-icon.svg" alt="invitation list icon"></a>
+                          <a href="#" class="menu-1_link"><img src="/img/images/two_men.svg" alt="two men icon"></a>
+                          <a href="#"  @click="activeMenu2" :class = "{ selectedLink: selectedLink2 }" class="menu-1_link { selected-link: selectedLink2 }"><img src="/img/images/message-icon.svg" alt="message icon"></a>
+                          <a href="#" :class = "{ selectedLink: selectedLink3 }" class="menu-1_link" @click="activeMenu3"><img src="/img/images/one-man.svg" alt="one man icon"></a>
+                      </div>
+                  </div>
+                  <div class="menu-2">
+                      <a href="" class="menu-2_link"><img src="/img/images/bin-icon.svg" alt=""></a>
+                      <a href="" class="menu-2_link"><img src="/img/images/help-icon.svg" alt=""></a>
+                      <a href="" class="menu-2_link"><img src="/img/images/setting-icon.svg" alt=""></a>
+                  </div>
 
-                </div>
-        </div>
-        <div class="main">
-            <div class="main-title">
-                <p class="main-title_p">Contacts</p>
-                <img src="/img/images/bell-icon.svg" alt="icon notification" class="main-bell">
-            </div>
-            <div class="main-search_section">
-                <input type="search" name="search" id="search" placeholder="Search">
-                <label for="search"><img src="/img/images/search-icon.svg" alt="search icon"></label>
-            </div>
-            <div class="main-contact_list">
-                <div class="contact_list-title">
-                  <select class="form-select" v-model="selectedOption" @change="updateContactList">
-                      <option value = "all">Tous les contacts</option>
-                       <option value="requests">Mes demandes de contact</option>
-                  </select>
-                </div>
-        <div class="contact_list">
-            <div v-for="user in usersToShow" :key="user.id" class="contact_list-item">
-                <div class="contact_list-item_infos">
-                <div class="contact_list-item_avatar"></div>
-                <p class="contact_list-item_name">{{ user.firstname }}</p>
-                </div>
-                <button class="btn-custom" v-if="!user.requestSent" @click="openModal(user)">Envoyer demande</button>
-            </div>
-        
-         </div>
-    </div>
-    <div id="invitations-section" class="main-invitations_section">
+              </div>
+      </div>
+      <div class="main">
+          <div class="main-title">
+              <p class="main-title_p">Contacts</p>
+              <img src="/img/images/bell-icon.svg" alt="icon notification" class="main-bell">
+          </div>
+          <div class="main-search_section">
+              <input type="search" name="search" id="search" placeholder="Search">
+              <label for="search"><img src="/img/images/search-icon.svg" alt="search icon"></label>
+          </div>
+          <div v-if="selectedLink3">
+          <div class="main-contact_list">
+              <div class="contact_list-title">
+                <select class="form-select" v-model="selectedOption" @change="updateContactList">
+                    <option value = "all">Tous les contacts</option>
+                     <option value="requests">Mes contacts</option>
+                </select>
+              </div>
+      <div class="contact_list">
+          <div v-for="user in usersToShow" :key="user.id" class="contact_list-item">
+              <div class="contact_list-item_infos">
+              <div class="contact_list-item_avatar"></div>
+              <p class="contact_list-item_name">{{ user.firstname }}</p>
+              </div>
+              <img v-if="!user.requestSent" @click="openModal(user)" src="/img/images/plus-icon.svg" alt="plus icon" class="contact_list-item_add_icon unadd">
+          </div>
+      
+       </div>
+       </div>
+  </div>
+  <div v-if="selectedLink1">
+  <div class="main-invitations_section">
                 <div class="invitations_section-title">
                     <p class="invitations_section-title_p">Invitations de contact</p>
                     <img src="/img/images/arrow-down.svg" alt="" class="invitations_section-title_icon">
@@ -65,110 +69,132 @@
                     </div>
                   </div>
     </div>
+  </div>
 </div>
 <div class="right">
-            <div class="right-container">
-                <img src="/img/images/Message sent.svg" alt="image principale">
-                <p class="right-title">
-                    GlowChat
-                </p>
-                <p class="right-text">
-                    Lorem ipsum dolor sit amet. Eos similique alias est voluptas galisum in eligendi
-                </p>
-            </div>
-        </div>
-  </div>
-  <div v-if="showModal" class="modal">
-                <div class="modal-content">
-                <span class="close" @click="closeModal">&times;</span>
-                <img src="/img/images/contact-add.svg" alt="">
-                <p>Voulez-vous vraiment ajouter ce contact ?</p>
-                <div class="button-wrapper">
-                    <button @click="sendContactRequest" class="modal-button button-1">Oui</button>
-                    <button @click="showModal = false" class="modal-button button-2">Non</button>
-                </div>
-                </div>
-        </div>
+          <div class="right-container">
+              <img src="/img/images/Message sent.svg" alt="image principale">
+              <p class="right-title">
+                  GlowChat
+              </p>
+              <p class="right-text">
+                  Lorem ipsum dolor sit amet. Eos similique alias est voluptas galisum in eligendi
+              </p>
+          </div>
+      </div>
+</div>
+<div v-if="showModal" class="modal">
+              <div class="modal-content">
+              <span class="close" @click="closeModal">&times;</span>
+              <img src="/img/images/contact-add.svg" alt="">
+              <p>Voulez-vous vraiment ajouter ce contact ?</p>
+              <div class="button-wrapper">
+                  <button @click="sendContactRequest" class="modal-button button-1">Oui</button>
+                  <button @click="showModal = false" class="modal-button button-2">Non</button>
+              </div>
+              </div>
+      </div>
 
-      <div v-if="error">{{ error }}</div>
+    <div v-if="error">{{ error }}</div>
 </template>
 
 <script>
 export default {
-  data() {
-    return {
-      users: [],
-      selectedOption: 'all',
-      showModal: false,
-      selectedUser: null,
-      error: null,
-    };
-  },
-  computed: {
-    usersToShow() {
-      if (this.selectedOption === 'all') {
-        return this.users;
-      } else {
-        return this.users.filter(user => user.status === 'PENDING');
-      }
-    },
-  },
-  methods: {
-    async fetchUsers() {
-        try {
-    const response = await this.$http.get('/users');
-    console.log(response.data); // Pour déboguer et voir la structure de la réponse
-    if (response.data && Array.isArray(response.data.data)) { // Vérifiez si response.data.data est un tableau
-      this.users = response.data.data.map(user => ({
-        ...user,
-        isFriend: user.status === 'VALIDATED',
-        requestSent: user.status === 'PENDING'
-      }));
-    } else {
-      console.error('Expected an array but got:', response.data);
-      // Gérez le cas où response.data.data n'est pas un tableau
-    }
-  } catch (error) {
-    console.error('An error occurred while fetching contacts:', error);
-    this.error = error.message; // Stockez le message d'erreur pour l'afficher dans le template
-  }
-    },
-
-    closeModal() {
-    this.showModal = false;
-    this.selectedUser = null; // Réinitialiser l'utilisateur sélectionné si nécessaire
-  },
-
-    openModal(user) {
-      this.selectedUser = user;
-      this.showModal = true;
-    },
-
-   async sendContactRequest() {
-  // Logique pour envoyer une demande de contact à un non-ami
-  if (!this.selectedContact) return; // Assurez-vous qu'un contact est sélectionné
-  console.log('Sending contact request to:', this.selectedUser.firstname);
-  try {
-    // Remplacez 'your-api-endpoint' par l'URL réelle de votre API
-    const response = await this.$http.post(`/contacts/${this.selectedUser.id}`);
-    if (response.status === 200) {
-      // Mettez à jour le statut de la demande pour ce contact
-      this.selectedUser.requestSent = true;
-      this.closeModal(); // Fermez la modale après l'envoi de la demande
-    }
-  } catch (error) {
-    console.error('An error occurred while sending contact request:', error);
-    // Gérez l'erreur comme vous le jugez approprié
-  }
+data() {
+  return {
+    users: [],
+    selectedOption: 'all',
+    showModal: false,
+    selectedUser: null,
+    error: null,
+    selectedLink1: false,
+    selectedLink2: false,
+    selectedLink3: true
+  };
 },
+computed: {
+  usersToShow() {
+    if (this.selectedOption === 'all') {
+      return this.users;
+    } else {
+      return this.users.filter(user => user.status === 'VALIDATED');
+    }
   },
-  mounted() {
-    this.fetchUsers();
+},
+methods: {
+  async fetchUsers() {
+      try {
+  const response = await this.$http.get('/users');
+  console.log(response.data); // Pour déboguer et voir la structure de la réponse
+  if (response.data && Array.isArray(response.data.data)) { // Vérifiez si response.data.data est un tableau
+    this.users = response.data.data.map(user => ({
+      ...user,
+      isFriend: user.status === 'VALIDATED',
+      requestSent: user.status === 'PENDING'
+    }));
+  } else {
+    console.error('Expected an array but got:', response.data);
+    // Gérez le cas où response.data.data n'est pas un tableau
+  }
+} catch (error) {
+  console.error('An error occurred while fetching contacts:', error);
+  this.error = error.message; // Stockez le message d'erreur pour l'afficher dans le template
+}
   },
+
+  activeMenu1(){
+    this.selectedLink1=true;
+    this.selectedLink2=false;
+    this.selectedLink3=false;
+  },
+
+  activeMenu2(){
+    this.selectedLink1=false;
+    this.selectedLink2=true;
+    this.selectedLink3=false;
+  },
+
+  activeMenu3(){
+    this.selectedLink1=false;
+    this.selectedLink2=false;
+    this.selectedLink3=true;
+  },
+
+  closeModal() {
+  this.showModal = false;
+  this.selectedUser = null; // Réinitialiser l'utilisateur sélectionné si nécessaire
+},
+
+  openModal(user) {
+    this.selectedUser = user;
+    this.showModal = true;
+  },
+
+ async sendContactRequest() {
+// Logique pour envoyer une demande de contact à un non-ami
+if (!this.selectedContact) return; // Assurez-vous qu'un contact est sélectionné
+console.log('Sending contact request to:', this.selectedUser.firstname);
+try {
+  // Remplacez 'your-api-endpoint' par l'URL réelle de votre API
+  const response = await this.$http.post(`/contacts/${this.selectedUser.id}`);
+  if (response.status === 200) {
+    // Mettez à jour le statut de la demande pour ce contact
+    this.selectedUser.requestSent = true;
+    this.closeModal(); // Fermez la modale après l'envoi de la demande
+  }
+} catch (error) {
+  console.error('An error occurred while sending contact request:', error);
+  // Gérez l'erreur comme vous le jugez approprié
+}
+},
+},
+mounted() {
+  this.fetchUsers();
+},
 };
 </script>
 <style>
-  :root {
+:root {
 
 --font : 'Lato', sans-serif;
 
@@ -259,7 +285,7 @@ align-items: center;
 gap: 1rem;
 }
 
-.selected-link {
+.selectedLink {
 background-color: #26736e3a;
 border-radius: 100%;
 padding: 1rem;
@@ -367,6 +393,61 @@ background: #888;
 background: #555;
 }
 
+.main-invitations_section {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.invitations_section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 1rem;
+    border-bottom: solid 1px var(--secondary-color);
+}
+
+.invitations_section-title_p {
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.invitations_list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    border-bottom: solid 1px rgba(128, 128, 128, 0.425);
+}
+
+.invitations_list-item_avatar {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 100%;
+    background-color: var(--secondary-color);
+}
+
+.invitations_list-item_name {
+    flex-grow: 1;
+    padding-left: 1rem;
+}
+
+.invitations_list-item_actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.invitation_accept, .invitation_decline {
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.invitation_accept img, .invitation_decline img {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
 .right {
 display: flex;
 justify-content: center;
@@ -445,20 +526,20 @@ background-color: rgb(192, 36, 36);
 }
 
 .btn-custom {
-  background-color: #083e4a; /* Vert foncé */
-  color: white; /* Texte blanc */
-  border: none; /* Pas de bordure */
-  padding: 10px 20px; /* Padding intérieur */
-  text-align: center; /* Alignement du texte */
-  text-decoration: none; /* Pas de soulignement du texte */
-  display: inline-block; /* Type d'affichage */
-  font-size: 16px; /* Taille de la police */
-  border-radius: 10px; /* Bords arrondis (25px pour un arrondi prononcé) */
-  cursor: pointer; /* Curseur en forme de main au survol */
+background-color: #083e4a; /* Vert foncé */
+color: white; /* Texte blanc */
+border: none; /* Pas de bordure */
+padding: 10px 20px; /* Padding intérieur */
+text-align: center; /* Alignement du texte */
+text-decoration: none; /* Pas de soulignement du texte */
+display: inline-block; /* Type d'affichage */
+font-size: 16px; /* Taille de la police */
+border-radius: 10px; /* Bords arrondis (25px pour un arrondi prononcé) */
+cursor: pointer; /* Curseur en forme de main au survol */
 }
 
 .btn-custom:hover {
-  background-color: #004d00; /* Vert foncé plus intense au survol */
+background-color: #004d00; /* Vert foncé plus intense au survol */
 }
 
 
@@ -479,49 +560,49 @@ cursor: pointer;
 
 @media screen and (max-width : 1025px) {
 .main-search_section{
-    width: 70%;
+  width: 70%;
 }
 
 input[type="search"] {
-    width: 50%;
+  width: 50%;
 }
 
 .modal-content {
-    width: 50%;
+  width: 50%;
 }
 }
 
 @media screen and (max-width : 769px) {
 .avatar-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .avatar-icon {
-    width: 3rem;
-    height: 3rem;
+  width: 3rem;
+  height: 3rem;
 }
 
 .selected-link {
-    padding: 0.5rem;
+  padding: 0.5rem;
 }
 
 .contact_list-item {
-    padding: 1rem 1rem;
+  padding: 1rem 1rem;
 }
 
 .main-search_section {
-    width: 90%;
-    padding: 0.5rem;
+  width: 90%;
+  padding: 0.5rem;
 }
 
 .main-title_p {
-    font-size: 1.5rem;
+  font-size: 1.5rem;
 }
 
 .right-container {
-    padding: 0 1rem;
+  padding: 0 1rem;
 }
 }
 
