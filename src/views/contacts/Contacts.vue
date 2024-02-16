@@ -7,6 +7,7 @@
                       <div class="avatar-container">
                           <img src="/img/images/avatar-svgrepo-com.svg" class="avatar-icon" alt="">
                       </div>
+                      <h4>{{ authUser.firstname }} {{ authUser.lastname }}</h4>
                       <div class="menu-1_link-container">
                         <a href="#" @click="activeMenu1" class="menu-1_link" :class = "{ selectedLink: selectedLink1 }"><img src="/img/images/invitations-list-icon.svg" alt="invitation list icon"></a>
                           <a href="#" class="menu-1_link"><img src="/img/images/two_men.svg" alt="two men icon"></a>
@@ -27,8 +28,12 @@
               <p class="main-title_p">Contacts</p>
               <img src="/img/images/bell-icon.svg" alt="icon notification" class="main-bell">
           </div>
-          <div class="main-search_section">
-              <input type="search" name="search" id="search" placeholder="Search">
+          <div class="main-search_section" v-if="allcontacts">
+              <input type="search" v-model="searchQuery" placeholder="Search" @input="fetchFilteredUsers">
+              <label for="search"><img src="/img/images/search-icon.svg" alt="search icon"></label>
+          </div>
+          <div class="main-search_section" v-if="mycontacts">
+              <input type="search" v-model="searchContact" placeholder="Search" @input="fetchFilteredContacts">
               <label for="search"><img src="/img/images/search-icon.svg" alt="search icon"></label>
           </div>
           <div v-if="selectedLink3">
@@ -78,7 +83,7 @@
                         <p class="invitations_list-item_name">{{ request.user1.firstname }} {{ request.user1.lastname }}</p>
                         <div class="invitations_list-item_actions">
                             <button class="invitation_accept" @click="openAcceptModal(request)"><img src="/img/images/check-icon.svg" alt="Accepter"></button>
-                            <button class="invitation_decline"><img src="/img/images/cross-icon.svg" alt="Refuser"></button>
+                            <button class="invitation_decline" @click="openDeclinedModal(request)"> <img src="/img/images/cross-icon.svg" alt="Refuser"></button>
                         </div>
                     </div>
                   </div>
@@ -143,9 +148,11 @@
 export default {
 data() {
   return {
+    searchQuery: '',
     users: [],
     allUsers: [],
     requests: [],
+    authUser: [],
     authUserId: 'null',
     selectedOption: 'null',
     showModal: false,
@@ -187,6 +194,69 @@ watch: {
     }
   },
 methods: {
+
+  async fetchAuthUser() {
+    this.authUserId = localStorage.getItem('userId');
+      try {
+        const response = await this.$http.get('/users');
+        this.authUser = response.data.data.filter(user => user._id == this.authUserId);
+} catch (error) {
+  console.error('An error occurred while fetching contacts:', error);
+  this.error = error.message;
+}
+  },
+
+  closeAcceptModal() {
+  this.showAcceptModal = false;
+  this.selectedRequest = null;
+},
+
+  openAcceptModal(request) {
+    this.selectedRequest = request;
+    this.showAcceptModal = true;
+  },
+
+async acceptInvitation (){
+  const bodyData = {
+  action: "ANSWER_TO_REQUEST",
+  status: "VALIDATED"
+};
+
+try {
+  const response = await this.$http.patch(`/contacts/${this.selectedRequest._id}`, bodyData);
+ /* this.usersValidatedId.push(selectedRequest.user1Id);
+  this.usersValidated.push(selectedRequest.user1);*/
+  this.closeAcceptModal();
+} catch (error) {
+  console.error(error);
+}
+},
+
+closeDeclinedModal() {
+  this.showDeclinedModal = false;
+  this.selectedRequest = null;
+},
+
+  openDeclinedModal(request) {
+    this.selectedRequest = request;
+    this.showDeclinedModal = true;
+  },
+
+async declinedInvitation (){
+  const bodyData = {
+  action: "ANSWER_TO_REQUEST",
+  status: "DECLINED"
+};
+
+try {
+  const response = await this.$http.patch(`/contacts/${this.selectedRequest._id}`, bodyData);
+  this.closeDeclinedModal();
+  //this.usersDeclined.push(selectedRequest.user1Id);
+} catch (error) {
+  console.error(error);
+}
+},
+
 async listRequestsValidated() {
   this.authUserId = localStorage.getItem('userId');
 try {
@@ -299,6 +369,37 @@ try {
 }
   },
 
+  async fetchFilteredUsers() {
+    if (this.searchQuery.trim() === '') {
+      await this.fetchUsers(); // Appelle la méthode existante pour réinitialiser la liste
+    } else {
+      try {
+        await this.listRequests();
+        const requestUserIds = new Set(this.requests.map(request => request.user1Id));
+
+        await this.listRequestsValidated();
+        const validatedUserIds = new Set(this.requestsValidated.map(requestValidated => requestValidated.user1Id));
+
+        const response = await this.$http.get('/users', {
+          params: {
+            $limit: 20,
+            $or: [
+              { lastname: { $regex: this.searchQuery, $options: 'i' } },
+              { firstname: { $regex: this.searchQuery, $options: 'i' } },
+              { email: { $regex: this.searchQuery, $options: 'i' } }
+            ]
+          }
+        });
+        this.allUsers = response.data.data.filter(user =>
+          user._id !== this.authUserId && !requestUserIds.has(user._id) && !validatedUserIds.has(user._id) && !this.usersValidatedId.includes(user._id)
+        );
+      } catch (error) {
+        console.error('An error occurred while fetching filtered users:', error);
+        this.error = error.message;
+      }
+    }
+  },
+
   activeMenu1(){
     this.selectedLink1=true;
     this.selectedLink2=false;
@@ -341,57 +442,6 @@ try {
 } catch (error) {
   console.error('An error occurred while sending contact request:', error.response.data);
 }
-},
-
-  closeAcceptModal() {
-  this.showAcceptModal = false;
-  this.selectedRequest = null;
-},
-
-  openAcceptModal(request) {
-    this.selectedRequest = request;
-    this.showAcceptModal = true;
-  },
-
-async acceptInvitation (){
-  const bodyData = {
-  action: "ANSWER_TO_REQUEST",
-  status: "VALIDATED"
-};
-
-try {
-  const response = await this.$http.patch(`/contacts/${this.selectedRequest._id}`, bodyData);
- /* this.usersValidatedId.push(selectedRequest.user1Id);
-  this.usersValidated.push(selectedRequest.user1);*/
-  this.closeAcceptModal();
-} catch (error) {
-  console.error(error);
-}
-},
-
-closeDeclinedModal() {
-  this.showDeclinedModal = false;
-  this.selectedRequest = null;
-},
-
-  openDeclinedModal(request) {
-    this.selectedRequest = request;
-    this.showDeclinedModal = true;
-  },
-
-async declinedInvitation (){
-  const bodyData = {
-  action: "ANSWER_TO_REQUEST",
-  status: "DECLINED"
-};
-
-try {
-  const response = await this.$http.patch(`/contacts/${this.selectedRequest._id}`, bodyData);
-  this.closeAcceptModal();
-  //this.usersDeclined.push(selectedRequest.user1Id);
-} catch (error) {
-  console.error(error);
-}
 }
 
 },
@@ -400,8 +450,14 @@ mounted() {
   this.listRequests();
   this.usersValidatedMe();
   this.listRequestsValidated();
-  this.listRequestsDeclined()
+  this.listRequestsDeclined();
+  this.fetchFilteredUsers();
+  this.fetchAuthUser();
 },
+
+/*beforeMount(){
+  this.fetchAuthUser();
+}*/
 }
 ;
 </script>
