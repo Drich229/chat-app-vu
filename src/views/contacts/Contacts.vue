@@ -34,20 +34,34 @@
           <div v-if="selectedLink3">
           <div class="main-contact_list">
               <div class="contact_list-title">
-                <select class="form-select" v-model="selectedOption" @change="updateContactList">
+                <select class="form-select" v-model="selectedOption">
                     <option value = "all">Tous les contacts</option>
-                     <option value="requests">Mes contacts</option>
+                     <option value="requests_validated">Mes contacts</option>
                 </select>
               </div>
-      <div class="contact_list">
-          <div v-for="user in usersToShow" :key="user.id" class="contact_list-item">
+      <div class="contact_list" v-if="allcontacts">
+          <div v-for="user in allUsers" :key="user._id" class="contact_list-item">
+            <!--<div v-if="!usersSendMeRequestId.includes(user._id) && !usersValidatedId.includes(user_id)">-->
               <div class="contact_list-item_infos">
               <div class="contact_list-item_avatar"></div>
-              <p class="contact_list-item_name">{{ user.firstname }}</p>
+              <p class="contact_list-item_name">{{ user.firstname }} {{ user.lastname }}</p>
               </div>
-              <img v-if="!user.requestSent" @click="openModal(user)" src="/img/images/plus-icon.svg" alt="plus icon" class="contact_list-item_add_icon unadd">
+              <img v-if="!sentInvitations.includes(user._id)" @click="openModal(user)" src="/img/images/plus-icon.svg" alt="plus icon" class="contact_list-item_add_icon unadd">
+              <span v-else>Invitation envoyée</span>
+            <!--</div>-->
           </div>
-      
+       </div>
+
+       <div class="contact_list" v-if="mycontacts">
+          <div v-for="requestValidated in requestsValidated" :key="requestValidated._id" class="contact_list-item">
+            <!--<div v-if="!usersSendMeRequestId.includes(user._id) && !usersValidatedId.includes(user_id)">-->
+              <div class="contact_list-item_infos">
+              <div class="contact_list-item_avatar"></div>
+              <p class="contact_list-item_name">{{ requestValidated.user1.firstname }} {{ requestValidated.user1.lastname }}</p>
+              </div>
+              <button>Démarrer discussion</button>
+            <!--</div>-->
+          </div>
        </div>
        </div>
   </div>
@@ -58,18 +72,21 @@
                     <img src="/img/images/arrow-down.svg" alt="" class="invitations_section-title_icon">
                 </div>
                 <div class="invitations_list">
-                    <!-- Invitation Item 1 -->
-                    <div class="invitations_list-item">
+                    <div v-for="request in requests" :key="request._id" class="invitations_list-item">
+                     
                         <div class="invitations_list-item_avatar"></div>
-                        <p class="invitations_list-item_name">Nom du Contact 1</p>
+                        <p class="invitations_list-item_name">{{ request.user1.firstname }} {{ request.user1.lastname }}</p>
                         <div class="invitations_list-item_actions">
-                            <button class="invitation_accept"><img src="/img/images/check-icon.svg" alt="Accepter"></button>
+                            <button class="invitation_accept" @click="openAcceptModal(request)"><img src="/img/images/check-icon.svg" alt="Accepter"></button>
                             <button class="invitation_decline"><img src="/img/images/cross-icon.svg" alt="Refuser"></button>
                         </div>
                     </div>
                   </div>
     </div>
+
   </div>
+
+
 </div>
 <div class="right">
           <div class="right-container">
@@ -95,6 +112,30 @@
               </div>
       </div>
 
+      <div v-if="showAcceptModal" class="modal">
+              <div class="modal-content">
+              <span class="close" @click="closeAcceptModal">&times;</span>
+              <img src="/img/images/contact-add.svg" alt="">
+              <p>Voulez-vous vraiment accepter cette invitation ?</p>
+              <div class="button-wrapper">
+                  <button @click="acceptInvitation" class="modal-button button-1">Oui</button>
+                  <button @click="showAcceptModal = false" class="modal-button button-2">Non</button>
+              </div>
+              </div>
+      </div>
+
+      <div v-if="showDeclinedModal" class="modal">
+              <div class="modal-content">
+              <span class="close" @click="closeDeclinedModal">&times;</span>
+              <img src="/img/images/contact-add.svg" alt="">
+              <p>Voulez-vous vraiment rejeter cette invitation ?</p>
+              <div class="button-wrapper">
+                  <button @click="declinedInvitation" class="modal-button button-1">Oui</button>
+                  <button @click="showDeclinedModal = false" class="modal-button button-2">Non</button>
+              </div>
+              </div>
+      </div>
+
     <div v-if="error">{{ error }}</div>
 </template>
 
@@ -103,42 +144,158 @@ export default {
 data() {
   return {
     users: [],
-    selectedOption: 'all',
+    allUsers: [],
+    requests: [],
+    authUserId: 'null',
+    selectedOption: 'null',
     showModal: false,
+    showAcceptModal: false,
+    showDeclinedModal: false,
     selectedUser: null,
+    selectedRequest: null,
     error: null,
     selectedLink1: false,
     selectedLink2: false,
-    selectedLink3: true
+    sentInvitations: [],
+    requestsValidated: [],
+    requestsDeclined: [],
+    usersValidated: [],
+    usersValidatedId: [],
+    usersDeclined: [],
+    requestsSent: [],
+    usersRefused: [],
+    usersSendMeRequestId: [],
+    validatedUsers: [],
+    validatedUserIds: [],
+    selectedLink3: true,
+    allcontacts: true,
+    mycontacts: false
   };
 },
-computed: {
-  usersToShow() {
-    if (this.selectedOption === 'all') {
-      return this.users;
-    } else {
-      return this.users.filter(user => user.status === 'VALIDATED');
+
+watch: {
+    selectedOption(newValue) {
+      if (newValue === 'all') {
+        this.allcontacts = true;
+        this.mycontacts = false;
+      }
+      else{
+        this.allcontacts = false;
+        this.mycontacts = true;
+      }
+      // Vous pouvez également gérer d'autres valeurs ici si nécessaire
     }
   },
-},
 methods: {
-  async fetchUsers() {
-      try {
-  const response = await this.$http.get('/users');
-  console.log(response.data); // Pour déboguer et voir la structure de la réponse
-  if (response.data && Array.isArray(response.data.data)) { // Vérifiez si response.data.data est un tableau
-    this.users = response.data.data.map(user => ({
-      ...user,
-      isFriend: user.status === 'VALIDATED',
-      requestSent: user.status === 'PENDING'
-    }));
-  } else {
-    console.error('Expected an array but got:', response.data);
-    // Gérez le cas où response.data.data n'est pas un tableau
+async listRequestsValidated() {
+  this.authUserId = localStorage.getItem('userId');
+try {
+  const params = {
+      status: 'VALIDATED',
+      user2Id: this.authUserId
+    };
+  const response = await this.$http.get('/contacts', { params });
+  this.requestsValidated = response.data.data;
+  /*for (const requestValidated of this.requestsValidated) {
+    this.usersValidated.push(requestValidated.user1);
+    this.usersValidatedId.push(requestValidated.user1Id);
+  }*/
+  console.log(this.requestsValidated);
+} catch (error) {
+    console.error(error);
   }
+},
+
+async listRequestsDeclined() {
+  this.authUserId = localStorage.getItem('userId');
+try {
+  const params = {
+      status: 'DECLINED',
+      user2Id: this.authUserId
+    };
+  const response = await this.$http.get('/contacts', { params });
+  this.requestsDeclined = response.data.data;
+  /*for (const requestValidated of this.requestsValidated) {
+    this.usersValidated.push(requestValidated.user1);
+    this.usersValidatedId.push(requestValidated.user1Id);
+  }*/
+  console.log(this.requestsDeclined);
+} catch (error) {
+    console.error(error);
+  }
+},
+
+async usersValidatedMe() {
+  this.authUserId = localStorage.getItem('userId');
+    for (const user of this.users) {
+
+      if (user._id === authUserId) {
+      continue;
+      }
+      try {
+        const params = {
+          status: 'VALIDATED',
+          user2Id: user._id
+        };
+        const response = await this.$http.get('/contacts', { params });
+        this.requestsSent=response.data.data.filter(requestSent => requestSent.user1Id == this.authUserId);
+        this.usersValidatedId.push(requestsSent.user2Id);
+        this.usersValidated.push(requestsSent.user2);
+
+        
+
+          /*for (const requestSent of this.requestsSent) {
+            if (requestSent.user1Id == this.authUserId) {
+              this.usersValidated.push(this.requestSent.user2);
+              this.usersValidatedId.push(this.requestSent.user2Id);
+            }
+          }*/
+      } catch (error) {
+        console.error(`An error occurred while fetching requests for user ${user._id}:`, error);
+      }
+    }
+  },
+
+  async listRequests() {
+  this.authUserId = localStorage.getItem('userId');
+try {
+  const params = {
+      status: 'PENDING',
+      user2Id: this.authUserId
+    };
+    await this.listRequestsValidated();
+    const validatedUserIds = new Set(this.requestsValidated.map(requestValidated => requestValidated.user1Id));
+
+    await this.listRequestsDeclined();
+    const declinedUserIds = new Set(this.requestsDeclined.map(requestDeclined => requestDeclined.user1Id));
+    
+  const response = await this.$http.get('/contacts', { params });
+  this.requests = response.data.data.filter(request => !validatedUserIds.has(request.user1Id) || !declinedUserIds.has(request.user1Id));
+  /*for (const request of this.requests) {
+    this.usersSendMeRequestId.push(request.user1Id);
+  }*/
+  console.log(this.requests);
+} catch (error) {
+    console.error(error);
+  }
+},
+
+  async fetchUsers() {
+    this.authUserId = localStorage.getItem('userId');
+      try {
+        await this.listRequests();
+        const requestUserIds = new Set(this.requests.map(request => request.user1Id));
+
+        await this.listRequestsValidated();
+        const validatedUserIds = new Set(this.requestsValidated.map(requestValidated => requestValidated.user1Id));
+
+        const response = await this.$http.get('/users');
+        this.allUsers = response.data.data.filter(user =>
+          user._id !== this.authUserId && !requestUserIds.has(user._id) && !validatedUserIds.has(user._id) && !this.usersValidatedId.includes(user._id)
+        );
 } catch (error) {
   console.error('An error occurred while fetching contacts:', error);
-  this.error = error.message; // Stockez le message d'erreur pour l'afficher dans le template
+  this.error = error.message;
 }
   },
 
@@ -172,26 +329,81 @@ methods: {
 
  async sendContactRequest() {
 // Logique pour envoyer une demande de contact à un non-ami
-if (!this.selectedContact) return; // Assurez-vous qu'un contact est sélectionné
+if (!this.selectedUser) return; // Assurez-vous qu'un contact est sélectionné
 console.log('Sending contact request to:', this.selectedUser.firstname);
+const bodyData = {
+  user2Id: this.selectedUser._id
+};
 try {
-  // Remplacez 'your-api-endpoint' par l'URL réelle de votre API
-  const response = await this.$http.post(`/contacts/${this.selectedUser.id}`);
-  if (response.status === 200) {
-    // Mettez à jour le statut de la demande pour ce contact
-    this.selectedUser.requestSent = true;
+  const response = await this.$http.post('/contacts/', bodyData);
+    this.sentInvitations.push(this.selectedUser._id);
     this.closeModal(); // Fermez la modale après l'envoi de la demande
-  }
 } catch (error) {
-  console.error('An error occurred while sending contact request:', error);
-  // Gérez l'erreur comme vous le jugez approprié
+  console.error('An error occurred while sending contact request:', error.response.data);
 }
 },
+
+  closeAcceptModal() {
+  this.showAcceptModal = false;
+  this.selectedRequest = null;
+},
+
+  openAcceptModal(request) {
+    this.selectedRequest = request;
+    this.showAcceptModal = true;
+  },
+
+async acceptInvitation (){
+  const bodyData = {
+  action: "ANSWER_TO_REQUEST",
+  status: "VALIDATED"
+};
+
+try {
+  const response = await this.$http.patch(`/contacts/${this.selectedRequest._id}`, bodyData);
+ /* this.usersValidatedId.push(selectedRequest.user1Id);
+  this.usersValidated.push(selectedRequest.user1);*/
+  this.closeAcceptModal();
+} catch (error) {
+  console.error(error);
+}
+},
+
+closeDeclinedModal() {
+  this.showDeclinedModal = false;
+  this.selectedRequest = null;
+},
+
+  openDeclinedModal(request) {
+    this.selectedRequest = request;
+    this.showDeclinedModal = true;
+  },
+
+async declinedInvitation (){
+  const bodyData = {
+  action: "ANSWER_TO_REQUEST",
+  status: "DECLINED"
+};
+
+try {
+  const response = await this.$http.patch(`/contacts/${this.selectedRequest._id}`, bodyData);
+  this.closeAcceptModal();
+  //this.usersDeclined.push(selectedRequest.user1Id);
+} catch (error) {
+  console.error(error);
+}
+}
+
 },
 mounted() {
   this.fetchUsers();
+  this.listRequests();
+  this.usersValidatedMe();
+  this.listRequestsValidated();
+  this.listRequestsDeclined()
 },
-};
+}
+;
 </script>
 <style>
 :root {
