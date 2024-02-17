@@ -26,7 +26,17 @@
       <div class="main">
           <div class="main-title">
               <p class="main-title_p">Contacts</p>
-              <img src="/img/images/bell-icon.svg" alt="icon notification" class="main-bell">
+              <div class="notification-wrapper" @click="toggleDropdown">
+                <img src="/img/images/bell-icon.svg" alt="icon notification" class="main-bell">
+                <span class="notification-count" v-if="requests.length">{{ requests.length }}</span>
+              </div>
+              <div class="dropdown" v-if="showDropdown">
+                <ul>
+                  <li @click="activeMenu1" v-for="request in requests" :key="request._id">
+                    {{ request.user1.firstname }} vous a envoyé une demande d'ami
+                  </li>
+                </ul>
+              </div>
           </div>
           <div class="main-search_section" v-if="allcontacts">
               <input type="search" v-model="searchQuery" placeholder="Search" @input="fetchFilteredUsers">
@@ -34,6 +44,10 @@
           </div>
           <div class="main-search_section" v-if="mycontacts">
               <input type="search" v-model="searchContact" placeholder="Search" @input="fetchFilteredContacts">
+              <label for="search"><img src="/img/images/search-icon.svg" alt="search icon"></label>
+          </div>
+          <div class="main-search_section" v-if="selectedLink1">
+              <input type="search" v-model="searchContactRequest" placeholder="Search" @input="fetchFilteredRequest">
               <label for="search"><img src="/img/images/search-icon.svg" alt="search icon"></label>
           </div>
           <div v-if="selectedLink3">
@@ -58,13 +72,22 @@
        </div>
 
        <div class="contact_list" v-if="mycontacts">
-          <div v-for="requestValidated in requestsValidated" :key="requestValidated._id" class="contact_list-item">
+          <div v-for="validatedUser in validatedUsers" :key="validatedUser._id" class="contact_list-item">
             <!--<div v-if="!usersSendMeRequestId.includes(user._id) && !usersValidatedId.includes(user_id)">-->
               <div class="contact_list-item_infos">
               <div class="contact_list-item_avatar"></div>
-              <p class="contact_list-item_name">{{ requestValidated.user1.firstname }} {{ requestValidated.user1.lastname }}</p>
+              <p class="contact_list-item_name">{{ validatedUser.firstname }} {{ validatedUser.lastname }}</p>
               </div>
-              <button>Démarrer discussion</button>
+              <button class="btn-custom" @click="startDiscussion">Démarrer discussion</button>
+            <!--</div>-->
+          </div>
+          <div v-for="userValidated in usersValidated" :key="userValidated._id" class="contact_list-item">
+            <!--<div v-if="!usersSendMeRequestId.includes(user._id) && !usersValidatedId.includes(user_id)">-->
+              <div class="contact_list-item_infos">
+              <div class="contact_list-item_avatar"></div>
+              <p class="contact_list-item_name">{{ userValidated.firstname }} {{ userValidated.lastname }}</p>
+              </div>
+              <button class="btn-custom">Démarrer discussion</button>
             <!--</div>-->
           </div>
        </div>
@@ -148,7 +171,10 @@
 export default {
 data() {
   return {
+    showDropdown: false,
     searchQuery: '',
+    searchContact : '',
+    searchContactRequest: '',
     users: [],
     allUsers: [],
     requests: [],
@@ -169,6 +195,7 @@ data() {
     usersValidated: [],
     usersValidatedId: [],
     usersDeclined: [],
+    usersRequests: [],
     requestsSent: [],
     usersRefused: [],
     usersSendMeRequestId: [],
@@ -195,6 +222,10 @@ watch: {
   },
 methods: {
 
+  startDiscussion() {
+      this.$router.push({ name: 'group-disc' });
+    },
+
   async fetchAuthUser() {
     this.authUserId = localStorage.getItem('userId');
       try {
@@ -206,57 +237,6 @@ methods: {
 }
   },
 
-  closeAcceptModal() {
-  this.showAcceptModal = false;
-  this.selectedRequest = null;
-},
-
-  openAcceptModal(request) {
-    this.selectedRequest = request;
-    this.showAcceptModal = true;
-  },
-
-async acceptInvitation (){
-  const bodyData = {
-  action: "ANSWER_TO_REQUEST",
-  status: "VALIDATED"
-};
-
-try {
-  const response = await this.$http.patch(`/contacts/${this.selectedRequest._id}`, bodyData);
- /* this.usersValidatedId.push(selectedRequest.user1Id);
-  this.usersValidated.push(selectedRequest.user1);*/
-  this.closeAcceptModal();
-} catch (error) {
-  console.error(error);
-}
-},
-
-closeDeclinedModal() {
-  this.showDeclinedModal = false;
-  this.selectedRequest = null;
-},
-
-  openDeclinedModal(request) {
-    this.selectedRequest = request;
-    this.showDeclinedModal = true;
-  },
-
-async declinedInvitation (){
-  const bodyData = {
-  action: "ANSWER_TO_REQUEST",
-  status: "DECLINED"
-};
-
-try {
-  const response = await this.$http.patch(`/contacts/${this.selectedRequest._id}`, bodyData);
-  this.closeDeclinedModal();
-  //this.usersDeclined.push(selectedRequest.user1Id);
-} catch (error) {
-  console.error(error);
-}
-},
-
 async listRequestsValidated() {
   this.authUserId = localStorage.getItem('userId');
 try {
@@ -266,6 +246,7 @@ try {
     };
   const response = await this.$http.get('/contacts', { params });
   this.requestsValidated = response.data.data;
+  this.validatedUsers= new Set(this.requestsValidated.map(requestValidated => requestValidated.user1));
   /*for (const requestValidated of this.requestsValidated) {
     this.usersValidated.push(requestValidated.user1);
     this.usersValidatedId.push(requestValidated.user1Id);
@@ -344,11 +325,16 @@ try {
   /*for (const request of this.requests) {
     this.usersSendMeRequestId.push(request.user1Id);
   }*/
+  //this.usersRequests = new Set(this.requests.map(request => request.user1));
   console.log(this.requests);
 } catch (error) {
     console.error(error);
   }
 },
+
+toggleDropdown() {
+    this.showDropdown = !this.showDropdown;
+  },
 
   async fetchUsers() {
     this.authUserId = localStorage.getItem('userId');
@@ -400,10 +386,147 @@ try {
     }
   },
 
+  async fetchFilteredContacts() {
+    if (this.searchContact.trim() === '') {
+      await this.listRequestsValidated(); // Appelle la méthode existante pour réinitialiser la liste
+    } else {
+      try {
+        await this.listRequestsValidated();
+        const validatedUserIds = new Set(this.requestsValidated.map(requestValidated => requestValidated.user1Id));
+
+        const response = await this.$http.get('/users', {
+          params: {
+            $limit: 20,
+            $or: [
+              { lastname: { $regex: this.searchQuery, $options: 'i' } },
+              { firstname: { $regex: this.searchQuery, $options: 'i' } },
+              { email: { $regex: this.searchQuery, $options: 'i' } }
+            ]
+          }
+        });
+        this.validatedUsers = response.data.data.filter(user => validatedUserIds.has(user._id) || this.usersValidatedId.includes(user._id)
+        );
+      } catch (error) {
+        console.error('An error occurred while fetching filtered users:', error);
+        this.error = error.message;
+      }
+    }
+  },
+
+ /* async fetchFilteredRequest() {
+    if (this.searchContactRequest.trim() === '') {
+      await this.listRequests(); // Appelle la méthode existante pour réinitialiser la liste
+    } else {
+      try {
+        await this.listRequests();
+    const requestsUserIds = new Set(this.requests.map(request => request.user1Id));
+
+        const response = await this.$http.get('/users', {
+          params: {
+            $limit: 20,
+            $or: [
+              { lastname: { $regex: this.searchQuery, $options: 'i' } },
+              { firstname: { $regex: this.searchQuery, $options: 'i' } },
+              { email: { $regex: this.searchQuery, $options: 'i' } }
+            ]
+          }
+        });
+        this.usersRequests = response.data.data.filter(user => requestsUserIds.has(user._id)
+        );
+        const idUsersRequests = new Set(this.usersRequests.map(userRequest => userRequest._id));
+
+        this.authUserId = localStorage.getItem('userId');
+            try {
+              const params = {
+                  status: 'PENDING',
+                  user2Id: this.authUserId
+                };
+                await this.listRequestsValidated();
+                const validatedUserIds = new Set(this.requestsValidated.map(requestValidated => requestValidated.user1Id));
+                
+              const response = await this.$http.get('/contacts', { params });
+              this.requests = response.data.data.filter(request => !validatedUserIds.has(request.user1Id) && idUsersRequests.has(request.user1Id));
+              /*for (const request of this.requests) {
+                this.usersSendMeRequestId.push(request.user1Id);
+              }
+              //this.usersRequests = new Set(this.requests.map(request => request.user1));
+              console.log(this.requests);
+            } catch (error) {
+                console.error(error);
+              }
+
+      } catch (error) {
+        console.error('An error occurred while fetching filtered users:', error);
+        this.error = error.message;
+      }
+    }
+  },*/
+
+      closeAcceptModal() {
+      this.showAcceptModal = false;
+      this.selectedRequest = null;
+    },
+
+      openAcceptModal(request) {
+        this.selectedRequest = request;
+        this.showAcceptModal = true;
+      },
+
+    async acceptInvitation (){
+      const bodyData = {
+      action: "ANSWER_TO_REQUEST",
+      status: "VALIDATED"
+    };
+
+    try {
+      const response = await this.$http.patch(`/contacts/${this.selectedRequest._id}`, bodyData);
+    /* this.usersValidatedId.push(selectedRequest.user1Id);
+      this.usersValidated.push(selectedRequest.user1);*/
+      const index = this.requests.indexOf(this.selectedRequest);
+        if (index !== -1) {
+          this.requests.splice(index, 1);
+        }
+      this.closeAcceptModal();
+    } catch (error) {
+      console.error(error);
+    }
+    },
+
+    closeDeclinedModal() {
+      this.showDeclinedModal = false;
+      this.selectedRequest = null;
+    },
+
+      openDeclinedModal(request) {
+        this.selectedRequest = request;
+        this.showDeclinedModal = true;
+      },
+
+    async declinedInvitation (){
+      const bodyData = {
+      action: "ANSWER_TO_REQUEST",
+      status: "DECLINED"
+    };
+
+    try {
+      const response = await this.$http.patch(`/contacts/${this.selectedRequest._id}`, bodyData);
+      const index = this.requests.indexOf(this.selectedRequest);
+        if (index !== -1) {
+          this.requests.splice(index, 1);
+        }
+      this.closeDeclinedModal();
+      //this.usersDeclined.push(selectedRequest.user1Id);
+    } catch (error) {
+      console.error(error);
+    }
+    },
+
   activeMenu1(){
     this.selectedLink1=true;
     this.selectedLink2=false;
     this.selectedLink3=false;
+    this.allcontacts=false;
+    this.mycontacts=false;
   },
 
   activeMenu2(){
@@ -453,6 +576,7 @@ mounted() {
   this.listRequestsDeclined();
   this.fetchFilteredUsers();
   this.fetchAuthUser();
+  this.fetchFilteredContacts();
 },
 
 /*beforeMount(){
@@ -491,6 +615,23 @@ position: relative;
 a {
 text-decoration: none;
 display: inline-block;
+}
+
+.btn-custom {
+  background-color: #083e4a; /* Vert foncé */
+  color: white; /* Texte blanc */
+  border: none; /* Pas de bordure */
+  padding: 10px 20px; /* Padding intérieur */
+  text-align: center; /* Alignement du texte */
+  text-decoration: none; /* Pas de soulignement du texte */
+  display: inline-block; /* Type d'affichage */
+  font-size: 16px; /* Taille de la police */
+  border-radius: 10px; /* Bords arrondis (25px pour un arrondi prononcé) */
+  cursor: pointer; /* Curseur en forme de main au survol */
+}
+
+.btn-custom:hover {
+  background-color: #03131f;
 }
 
 .container {
