@@ -25,12 +25,9 @@ export default {
         email: this.email,
         password: this.password
       })
-      .then(response => { // Ajoutez ici le paramètre de réponse
-
-          // Supposons que l'ID de l'utilisateur est disponible dans la réponse
+      .then(response => { 
           const userId = response.user._id;
 
-        // Stocker l'ID de l'utilisateur dans le stockage local
         localStorage.setItem('userId', userId);
 
         this.$router.push({ name: 'contacts' }); // Redirige vers la liste des contacts

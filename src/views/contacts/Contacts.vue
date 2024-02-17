@@ -54,7 +54,7 @@
           <div class="main-contact_list">
               <div class="contact_list-title">
                 <select class="form-select" v-model="selectedOption">
-                    <option value = "all">Tous les contacts</option>
+                    <option value = "all">Suggestions de contacts</option>
                      <option value="requests_validated">Mes contacts</option>
                 </select>
               </div>
@@ -72,13 +72,13 @@
        </div>
 
        <div class="contact_list" v-if="mycontacts">
-          <div v-for="validatedUser in validatedUsers" :key="validatedUser._id" class="contact_list-item">
+          <div v-for="requestValidated in requestsValidated" :key="requestValidated._id" class="contact_list-item">
             <!--<div v-if="!usersSendMeRequestId.includes(user._id) && !usersValidatedId.includes(user_id)">-->
               <div class="contact_list-item_infos">
               <div class="contact_list-item_avatar"></div>
-              <p class="contact_list-item_name">{{ validatedUser.firstname }} {{ validatedUser.lastname }}</p>
+              <p class="contact_list-item_name">{{ requestValidated.user1.firstname }} {{ requestValidated.user1.lastname }}</p>
               </div>
-              <button class="btn-custom" @click="startDiscussion">Démarrer discussion</button>
+              <button class="btn-custom" @click="startDiscussion(requestValidated.user1)">Démarrer discussion</button>
             <!--</div>-->
           </div>
           <div v-for="userValidated in usersValidated" :key="userValidated._id" class="contact_list-item">
@@ -180,7 +180,7 @@ data() {
     requests: [],
     authUser: [],
     authUserId: 'null',
-    selectedOption: 'null',
+    selectedOption: 'all',
     showModal: false,
     showAcceptModal: false,
     showDeclinedModal: false,
@@ -222,8 +222,30 @@ watch: {
   },
 methods: {
 
-  startDiscussion() {
+  async startDiscussion(validatedUser_selected) {
+    this.authUserId = localStorage.getItem('userId');
+    const bodyData = {
+      tag: "GROUP",
+    name: "Group 1",
+    description: "description group",
+    members : [
+        {
+            userId: this.authUserId,
+            isAdmin: true
+        },
+        {
+            userId: validatedUser_selected._id,
+            isAdmin: false
+        }
+    ]
+    };
+
+    try {
+      const response = await this.$http.post(`/contacts/${this.selectedRequest._id}`, bodyData);
       this.$router.push({ name: 'group-disc' });
+    } catch (error) {
+      console.error(error);
+    }
     },
 
   async fetchAuthUser() {
@@ -485,6 +507,11 @@ toggleDropdown() {
       const index = this.requests.indexOf(this.selectedRequest);
         if (index !== -1) {
           this.requests.splice(index, 1);
+        }
+      this.usersValidated.push(this.selectedRequest.user1);
+      const index2 = this.usersValidated.indexOf(this.authUser);
+        if (index2 !== -1) {
+          this.usersValidated.splice(index2, 1);
         }
       this.closeAcceptModal();
     } catch (error) {
